@@ -8,6 +8,8 @@ import (
 type UserService interface {
 	GetUser(id int) (*model.User, error)
 	//GetUser2(id int)(*model.User,error)
+	CreateUser(user model.User) (model.User, error)
+	CreateTable() error
 }
 
 type userService struct {
@@ -31,4 +33,20 @@ func (u *userService) GetUser(id int) (*model.User, error) {
 	}
 
 	return user, nil
+}
+
+func (u *userService) CreateUser(user model.User) (model.User, error) {
+	err := u.data.CreateUser(user)
+	if err != nil {
+		return model.User{}, err
+	}
+	return user, nil
+}
+
+func (u *userService) CreateTable() error {
+	err := u.data.CreateTable()
+	if err != nil {
+		return err
+	}
+	return nil
 }
