@@ -17,8 +17,6 @@ type UserHanlder struct {
 func NewUserHandler(s user_service.UserService) *UserHanlder {
 	return &UserHanlder{service: s}
 }
-
-
 func (h *UserHanlder) GetUser(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	idStr := vars["id"]
@@ -32,37 +30,37 @@ func (h *UserHanlder) GetUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		http.Error(w,"Failed to get User",http.StatusBadGateway)
+		http.Error(w, "Failed to get User", http.StatusBadGateway)
 		return
 	}
 	json.NewEncoder(w).Encode(user)
 }
 
-func (h *UserHanlder) CreateUser(w http.ResponseWriter, r *http.Request){
+func (h *UserHanlder) CreateUser(w http.ResponseWriter, r *http.Request) {
 	var user model.User
-	err:=json.NewDecoder(r.Body).Decode(&user)
-	if err!=nil{
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		http.Error(w,"Failed to Decode json2",http.StatusBadGateway)
+		http.Error(w, "Failed to Decode json2", http.StatusBadGateway)
 		return
 	}
-	
-	userResponse,err:=h.service.CreateUser(user)
-	if(err!=nil){
+
+	userResponse, err := h.service.CreateUser(user)
+	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		http.Error(w,"Failed to get response form the sevice",http.StatusBadGateway)
+		http.Error(w, "Failed to get response form the sevice", http.StatusBadGateway)
 		return
 	}
 	json.NewEncoder(w).Encode(userResponse)
 
 }
 
-func (h *UserHanlder) CreateTable(w http.ResponseWriter, r *http.Request){
-	err:=h.service.CreateTable()
-	if err!=nil{
-		http.Error(w,"Service layer a somossa",http.StatusBadRequest)
+func (h *UserHanlder) CreateTable(w http.ResponseWriter, r *http.Request) {
+	err := h.service.CreateTable()
+	if err != nil {
+		http.Error(w, "Service layer a somossa", http.StatusBadRequest)
 	}
 	json.NewEncoder(w).Encode("Table created Successfully")
 }

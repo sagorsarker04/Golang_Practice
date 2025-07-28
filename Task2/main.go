@@ -1,91 +1,64 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"log"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type Vehicle struct{
-	Make string
-	Model string
-	Year int
-	Price float64
-}
-
-type Car struct{
-	Vehicle
-	SeatingCapacity int
-}
-
-type Bike struct{
-	Vehicle
-	HasCarrieer bool
-}
-
-func (C Car) ShowDetails(){
-	fmt.Println("Make is", C.Make)
-	fmt.Println("Model is ", C.Model)
-	fmt.Println("Year is ",C.Year)
-	fmt.Println("Price is ",C.Price)
-	fmt.Println("Seating capacity is ",C.SeatingCapacity)
-}
-
-func (B Bike) ShowDetails(){
-	fmt.Println("Make is", B.Make)
-	fmt.Println("Model is ", B.Model)
-	fmt.Println("Year is ",B.Year)
-	fmt.Println("Price is ",B.Price)
-	fmt.Println("It has career? ",B.HasCarrieer)
-}
-
-func (c Car) CalculateDepreciation() float64 {
-	currentYear := time.Now().Year()
-	carAge := currentYear - c.Year
-	depreciationRate := 0.15
-
-	currentValue := c.Price
-	for i := 0; i < carAge; i++ {
-		currentValue -= currentValue * depreciationRate
+func main() {
+	// Step 1: Connect to RabbitMQ
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	if err != nil {
+		log.Fatal("❌ Failed to connect to RabbitMQ:", err)
 	}
-	return currentValue
-}
+	defer conn.Close()
 
-func (B Bike) CalculateDepreciationBike() float64 {
-	currentYear := time.Now().Year()
-	bikeAge := currentYear - B.Year
-	depreciationRate := 0.15
-
-	currentValue := B.Price
-	for i := 0; i < bikeAge; i++ {
-		currentValue -= currentValue * depreciationRate
+	// Step 2: Open a channel
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatal("❌ Failed to open a channel:", err)
 	}
-	return currentValue
-}
-func main(){
-	car1:=Car{
-		SeatingCapacity: 12,
-		Vehicle:Vehicle{
-			Make: "Honda",
-			Year: 2012,
-			Model: "120",
-			Price: 120000,
+	defer ch.Close()
+
+	// Step 3: Declare the same queue your consumer is using
+	queueName := "email-sender-queue" // 🔁 Must match the consumer queue name
+	_, err = ch.QueueDeclare(
+		queueName,
+		true, // durable
+		false, // auto-delete
+		false, // exclusive
+		false, // no-wait
+		nil,   // args
+	)
+	if err != nil {
+		log.Fatal("❌ Failed to declare queue:", err)
+	}
+
+	// Step 4: Prepare your message (your provided structure)
+	body := `
+{
+  "to": ["ramita.rafi@gmail.com"],
+  "subject": "Your Subject",
+  "template": "generic_email.html",
+  "data": {
+    "Body": "This is the dynamic content of the email."
+  }
+}`
+
+	// Step 5: Publish the message
+	err = ch.Publish(
+		"",        // exchange: default
+		queueName, // routing key = queue name
+		false, false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        []byte(body),
 		},
-
+	)
+	if err != nil {
+		log.Fatal("❌ Failed to publish message:", err)
 	}
-	currentValue := car1.CalculateDepreciation()
-	fmt.Println("Cureent value of the car is ",currentValue)
 
-	bike1:=Bike{
-		HasCarrieer: true,
-			Vehicle:Vehicle{
-				Make: "Phonix",
-				Year: 2018,
-				Model: "1203",
-				Price: 13433,
-		},
-	}
-	bikeValue:=bike1.CalculateDepreciationBike()
-	fmt.Println("Current value is ", bikeValue)
-
-	
+	log.Println("✅ Email event sent successfully.")
 }
